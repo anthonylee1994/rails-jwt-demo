@@ -2,6 +2,9 @@
 
 A small Rails API app that demonstrates username/password authentication with JWTs and user-scoped task management.
 
+The app exposes two public auth endpoints and a protected task CRUD API. Every
+task request is scoped to the authenticated user.
+
 ## Stack
 
 - Ruby 4.0.5
@@ -31,7 +34,8 @@ bundle exec rspec
 
 ## Authentication
 
-Register and login both return a JWT token:
+Register and login both return a JWT token. The token is signed with
+`Rails.application.secret_key_base`, uses `HS256`, and expires after 24 hours.
 
 ```json
 {
@@ -45,12 +49,32 @@ Use the token on task requests:
 Authorization: Bearer jwt-token
 ```
 
+Authenticated task responses include a refreshed token in the response header:
+
+```http
+Authorization: Bearer refreshed-jwt-token
+```
+
 ### Register
 
 ```sh
 curl -X POST http://localhost:3000/auth/register \
   -H "Content-Type: application/json" \
   -d '{"username":"anthony","password":"password123"}'
+```
+
+Usernames are normalized to lowercase and must match this format:
+
+- 5 to 20 characters
+- starts and ends with a letter or number
+- may contain letters, numbers, `.`, `_`, and `-`
+
+Validation errors return `422 Unprocessable Content`:
+
+```json
+{
+  "errors": ["Username can't be blank"]
+}
 ```
 
 ### Login
@@ -71,9 +95,32 @@ Invalid credentials return:
 
 ## Tasks
 
-All task endpoints require `Authorization: Bearer <token>`. Tasks are scoped to the logged-in user.
+All task endpoints require `Authorization: Bearer <token>`. Tasks are scoped to the logged-in user, so users cannot list, show, update, or delete another user's tasks.
+
+Unauthenticated or invalid-token requests return:
+
+```json
+{
+  "error": "Unauthorized"
+}
+```
+
+Task JSON uses this shape:
+
+```json
+{
+  "id": "uuid",
+  "name": "Build API",
+  "completed": false,
+  "user_id": "user-uuid",
+  "created_at": "2026-06-11T00:00:00.000Z",
+  "updated_at": "2026-06-11T00:00:00.000Z"
+}
+```
 
 ### List Tasks
+
+Tasks are returned newest first.
 
 ```sh
 curl http://localhost:3000/tasks \
@@ -89,7 +136,7 @@ curl http://localhost:3000/tasks/:id \
 
 ### Create Task
 
-`completed` defaults to `false`.
+`completed` defaults to `false`. `name` is required.
 
 ```sh
 curl -X POST http://localhost:3000/tasks \
@@ -99,6 +146,8 @@ curl -X POST http://localhost:3000/tasks \
 ```
 
 ### Update Task
+
+Only `name` and `completed` are accepted.
 
 ```sh
 curl -X PUT http://localhost:3000/tasks/:id \
@@ -120,6 +169,7 @@ curl -X DELETE http://localhost:3000/tasks/:id \
 | ------ | ---------------- | ---- | -------------------------- |
 | POST   | `/auth/register` | No   | Create user and return JWT |
 | POST   | `/auth/login`    | No   | Login and return JWT       |
+| GET    | `/up`            | No   | Rails health check         |
 | GET    | `/tasks`         | Yes  | List current user's tasks  |
 | GET    | `/tasks/:id`     | Yes  | Show current user's task   |
 | POST   | `/tasks`         | Yes  | Create current user's task |
@@ -129,5 +179,6 @@ curl -X DELETE http://localhost:3000/tasks/:id \
 ## Notes
 
 - Passwords are stored with `has_secure_password`.
-- JWTs are signed with `Rails.application.secret_key_base`.
+- JWT payloads include `sub` with the user id and `username` with the normalized username.
 - Task `completed` defaults to `false`.
+- Task ids and user ids are UUID strings.
