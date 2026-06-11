@@ -18,10 +18,23 @@ RSpec.describe "Tasks", type: :request do
       )
     end
 
+    it "returns a refreshed JWT for authenticated requests" do
+      get "/tasks", headers: headers
+
+      token = response.headers["Authorization"].split.last
+      payload = JsonWebToken.decode(token)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.headers["Authorization"]).to start_with("Bearer ")
+      expect(payload["sub"]).to eq(user.id)
+      expect(payload["username"]).to eq(user.username)
+    end
+
     it "rejects unauthenticated requests" do
       get "/tasks"
 
       expect(response).to have_http_status(:unauthorized)
+      expect(response.headers["Authorization"]).to be_nil
       expect(response.parsed_body["error"]).to eq("Unauthorized")
     end
   end
