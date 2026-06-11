@@ -26,4 +26,31 @@ RSpec.describe User, type: :model do
     expect(user).not_to be_valid
     expect(user.errors[:username]).to include("has already been taken")
   end
+
+  it "converts username to lower case before validation" do
+    user = described_class.create!(username: "Anthony", password: "password123")
+
+    expect(user.username).to eq("anthony")
+  end
+
+  it "allows letters numbers dots underscores and hyphens in username" do
+    user = described_class.new(username: "Anthony_1-Test", password: "password123")
+
+    expect(user).to be_valid
+    expect(user.username).to eq("anthony_1-test")
+  end
+
+  it "requires username to start and end with a letter or number" do
+    starts_with_symbol = described_class.new(username: "_anthony", password: "password123")
+    ends_with_symbol = described_class.new(username: "anthony_", password: "password123")
+
+    expect(starts_with_symbol).not_to be_valid
+    expect(ends_with_symbol).not_to be_valid
+  end
+
+  it "requires username to match the allowed length" do
+    user = described_class.new(username: "abc1", password: "password123")
+
+    expect(user).not_to be_valid
+  end
 end

@@ -10,9 +10,14 @@
 #
 
 class User < ApplicationRecord
+  USERNAME_FORMAT = /\A[a-zA-Z0-9][a-zA-Z0-9._-]{3,18}[a-zA-Z0-9]\z/
+
   has_many :tasks, dependent: :destroy
 
+  before_validation :downcase_username
+
   validates :username, presence: true, uniqueness: true
+  validates :username, format: { with: USERNAME_FORMAT }
   validates :password_digest, presence: true
 
   has_secure_password
@@ -24,5 +29,11 @@ class User < ApplicationRecord
   def self.from_token(token)
     payload = JsonWebToken.decode(token)
     find(payload["sub"])
+  end
+
+  private
+
+  def downcase_username
+    self.username = username&.downcase
   end
 end
