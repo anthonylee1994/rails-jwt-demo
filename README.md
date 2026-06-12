@@ -12,6 +12,7 @@ task request is scoped to the authenticated user.
 - SQLite
 - RSpec
 - JWT authentication
+- Rack CORS
 
 ## Setup
 
@@ -54,6 +55,9 @@ Authenticated task responses include a refreshed token in the response header:
 ```http
 Authorization: Bearer refreshed-jwt-token
 ```
+
+The CORS middleware allows all origins and exposes the `Authorization` response
+header so browser clients can read refreshed tokens.
 
 ### Register
 
@@ -105,6 +109,8 @@ Unauthenticated or invalid-token requests return:
 }
 ```
 
+Looking up another user's task through `/tasks/:id` returns `404 Not Found`.
+
 Task JSON uses this shape:
 
 ```json
@@ -136,7 +142,8 @@ curl http://localhost:3000/tasks/:id \
 
 ### Create Task
 
-`completed` defaults to `false`. `name` is required.
+`completed` defaults to `false`. `name` is required, and `completed` must be
+either `true` or `false`.
 
 ```sh
 curl -X POST http://localhost:3000/tasks \
@@ -156,6 +163,8 @@ curl -X PUT http://localhost:3000/tasks/:id \
   -d '{"name":"Ship API","completed":true}'
 ```
 
+`PATCH /tasks/:id` is also available through Rails resource routing.
+
 ### Delete Task
 
 ```sh
@@ -174,6 +183,7 @@ curl -X DELETE http://localhost:3000/tasks/:id \
 | GET    | `/tasks/:id`     | Yes  | Show current user's task   |
 | POST   | `/tasks`         | Yes  | Create current user's task |
 | PUT    | `/tasks/:id`     | Yes  | Update current user's task |
+| PATCH  | `/tasks/:id`     | Yes  | Update current user's task |
 | DELETE | `/tasks/:id`     | Yes  | Delete current user's task |
 
 ## Notes
@@ -182,3 +192,4 @@ curl -X DELETE http://localhost:3000/tasks/:id \
 - JWT payloads include `sub` with the user id and `username` with the normalized username.
 - Task `completed` defaults to `false`.
 - Task ids and user ids are UUID strings.
+- The app exposes `Authorization` through CORS for frontend refresh-token flows.
