@@ -37,6 +37,14 @@ RSpec.describe "Tasks", type: :request do
       expect(response.headers["Authorization"]).to be_nil
       expect(response.parsed_body["error"]).to eq("Unauthorized")
     end
+
+    it "rejects tokens sent without a Bearer prefix" do
+      user = User.create!(username: "anthony", password: "password123")
+
+      get "/tasks", headers: { "Authorization" => user.token }
+
+      expect(response).to have_http_status(:unauthorized)
+    end
   end
 
   describe "GET /tasks/:id" do

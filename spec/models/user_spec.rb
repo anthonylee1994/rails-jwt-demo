@@ -53,4 +53,18 @@ RSpec.describe User, type: :model do
 
     expect(user).not_to be_valid
   end
+
+  it "requires password to be at least 8 characters" do
+    user = described_class.new(username: "anthony", password: "short")
+
+    expect(user).not_to be_valid
+    expect(user.errors[:password]).to include("is too short (minimum is 8 characters)")
+  end
+
+  it "does not re-validate password length on update" do
+    user = described_class.create!(username: "anthony", password: "password123")
+    user.username = "anthony2"
+
+    expect(user).to be_valid
+  end
 end

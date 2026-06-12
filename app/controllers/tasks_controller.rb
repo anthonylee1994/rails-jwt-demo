@@ -2,6 +2,8 @@ class TasksController < ApplicationController
   before_action :set_task, only: %i[ show update destroy ]
 
   def index
+    # If a serializer ever starts including the task's `user` (or any other
+    # association), add `.includes(:user)` here to avoid an N+1.
     render json: current_user.tasks.order(created_at: :desc)
   end
 

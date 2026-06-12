@@ -11,10 +11,13 @@ Live demo: https://lane-api.on99.app/
 
 - Ruby 4.0.5
 - Rails 8.1.3
-- SQLite
+- SQLite (with separate primary / cache / queue / cable databases)
 - RSpec
-- JWT authentication
+- JWT authentication (HS256, 24h expiry)
 - Rack CORS
+- Solid Queue / Solid Cache / Solid Cable
+- Kamal for deployment
+- RuboCop (rubocop-rails-omakase) + Brakeman + bundler-audit
 
 ## Setup
 
@@ -31,10 +34,28 @@ bundle exec rails server
 
 For the local server, the examples below use `http://localhost:3000`.
 
-Run the test suite:
+## Test & Lint
 
 ```sh
-bundle exec rspec
+bundle exec rspec           # Run the test suite
+bundle exec rubocop         # Omakase Ruby styling
+bundle exec brakeman        # Security static analysis
+bundle exec bundler-audit   # Gem vulnerability check
+```
+
+## Project Layout
+
+```
+app/
+  controllers/
+    application_controller.rb   # JWT auth filter + sliding-session header refresh
+    auth_controller.rb         # /auth/register, /auth/login
+    tasks_controller.rb        # User-scoped task CRUD
+  models/
+    user.rb                    # username format + has_secure_password, owns #token
+    task.rb                    # scoped to user, boolean completed
+  services/
+    json_web_token.rb          # Thin wrapper around the `jwt` gem
 ```
 
 ## Authentication
@@ -48,13 +69,15 @@ Register and login both return a JWT token. The token is signed with
 }
 ```
 
-Use the token on task requests:
+Use the token on task requests. The `Bearer` prefix is required — anything else
+returns `401 Unauthorized`:
 
 ```http
 Authorization: Bearer jwt-token
 ```
 
-Authenticated task responses include a refreshed token in the response header:
+Authenticated task responses include a refreshed token in the response header
+(sliding session — keep using the most recent token from the response):
 
 ```http
 Authorization: Bearer refreshed-jwt-token
@@ -76,6 +99,8 @@ Usernames are normalized to lowercase and must match this format:
 - 5 to 20 characters
 - starts and ends with a letter or number
 - may contain letters, numbers, `.`, `_`, and `-`
+
+Passwords must be at least 8 characters.
 
 Validation errors return `422 Unprocessable Content`:
 
@@ -105,7 +130,7 @@ Invalid credentials return:
 
 All task endpoints require `Authorization: Bearer <token>`. Tasks are scoped to the logged-in user, so users cannot list, show, update, or delete another user's tasks.
 
-Unauthenticated or invalid-token requests return:
+Unauthenticated, expired, or otherwise invalid tokens return:
 
 ```json
 {
@@ -147,7 +172,7 @@ curl http://localhost:3000/tasks/:id \
 ### Create Task
 
 `completed` defaults to `false`. `name` is required, and `completed` must be
-either `true` or `false`.
+either `true` or `false` (omitting it returns `422`).
 
 ```sh
 curl -X POST http://localhost:3000/tasks \
@@ -190,10 +215,23 @@ curl -X DELETE http://localhost:3000/tasks/:id \
 | PATCH  | `/tasks/:id`     | Yes  | Update current user's task |
 | DELETE | `/tasks/:id`     | Yes  | Delete current user's task |
 
+## Deploy
+
+The project ships with a `Dockerfile` and `config/deploy.yml` for [Kamal](https://kamal-deploy.org).
+Persistent state (the SQLite databases) lives under `storage/` and is mounted
+as a Docker volume in `config/deploy.yml`.
+
+```sh
+kamal setup    # First-time deploy
+kamal deploy   # Subsequent deploys
+kamal logs     # Tail production logs
+```
+
 ## Notes
 
-- Passwords are stored with `has_secure_password`.
+- Passwords are stored with `has_secure_password` (bcrypt, min 8 chars).
 - JWT payloads include `sub` with the user id and `username` with the normalized username.
-- Task `completed` defaults to `false`.
-- Task ids and user ids are UUID strings.
+- The `Authorization` request header must be prefixed with `Bearer `; tokens without the prefix are rejected.
+- Task `completed` defaults to `false` and must be `true` or `false` (not `nil`).
+- Task ids and user ids are UUID v7 strings.
 - The app exposes `Authorization` through CORS for frontend refresh-token flows.

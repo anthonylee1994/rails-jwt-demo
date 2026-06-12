@@ -18,5 +18,6 @@ class Task < ApplicationRecord
   belongs_to :user
 
   validates :name, presence: true
+  # `nil` is not in [true, false], so this also rejects missing `completed`.
   validates :completed, inclusion: { in: [ true, false ] }
 end

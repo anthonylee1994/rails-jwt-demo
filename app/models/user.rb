@@ -16,9 +16,8 @@ class User < ApplicationRecord
 
   before_validation :downcase_username
 
-  validates :username, presence: true, uniqueness: true
-  validates :username, format: { with: USERNAME_FORMAT }
-  validates :password_digest, presence: true
+  validates :username, presence: true, uniqueness: true, format: { with: USERNAME_FORMAT }
+  validates :password, length: { minimum: 8 }, allow_nil: true
 
   has_secure_password
 
