@@ -5,6 +5,8 @@ A small Rails API app that demonstrates username/password authentication with JW
 The app exposes two public auth endpoints and a protected task CRUD API. Every
 task request is scoped to the authenticated user.
 
+Live demo: https://lane-api.on99.app/
+
 ## Stack
 
 - Ruby 4.0.5
@@ -25,12 +27,6 @@ Run the server:
 
 ```sh
 bundle exec rails server
-```
-
-Hosted API:
-
-```text
-https://lane-api.on99.app/
 ```
 
 For the local server, the examples below use `http://localhost:3000`.
