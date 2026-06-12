@@ -27,6 +27,14 @@ Run the server:
 bundle exec rails server
 ```
 
+Hosted API:
+
+```text
+https://lane-api.on99.app/
+```
+
+For the local server, the examples below use `http://localhost:3000`.
+
 Run the test suite:
 
 ```sh
