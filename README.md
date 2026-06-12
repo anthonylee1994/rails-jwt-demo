@@ -83,8 +83,12 @@ Authenticated task responses include a refreshed token in the response header
 Authorization: Bearer refreshed-jwt-token
 ```
 
-The CORS middleware allows all origins and exposes the `Authorization` response
-header so browser clients can read refreshed tokens.
+The CORS middleware allows two origins (production frontend + local dev) and
+exposes the `Authorization` response header so browser clients can read
+refreshed tokens:
+
+- `https://lane.on99.app` (production frontend)
+- `http://localhost:5173` (local dev)
 
 ### Register
 
@@ -235,3 +239,4 @@ kamal logs     # Tail production logs
 - Task `completed` defaults to `false` and must be `true` or `false` (not `nil`).
 - Task ids and user ids are UUID v7 strings.
 - The app exposes `Authorization` through CORS for frontend refresh-token flows.
+- CORS is restricted to `https://lane.on99.app` and `http://localhost:5173`. Add new origins to `config/initializers/cors.rb`.
