@@ -1,5 +1,11 @@
 #!/bin/bash -e
 
+if [ "$(id -u)" = "0" ]; then
+  mkdir -p /rails/storage /rails/tmp /rails/log
+  chown -R rails:rails /rails/storage /rails/tmp /rails/log
+  exec gosu rails "$0" "$@"
+fi
+
 # If running the rails server then create or migrate existing database
 if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
   ./bin/rails db:prepare
